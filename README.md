@@ -2,9 +2,9 @@
 
 Variational 2-RDM Method
 
-Copyright (c) A. S. Schlimgen and D. A. Mazziotti 2019
+Copyright (c) A. W. Schlimgen and D. A. Mazziotti 2019
 
-The variational 2-RDM method computes the ground-state energy as a functional of the 2-RDM constrained by N-representability conditions.  This implementation, written mainly by A. S. Schlimgen, is based on code by D. A. Mazziotti.  Optimization is performed by the boundary-point algorithm for semidefinite programming, developed for 2-RDMs by D. A. Mazziotti in Ref. [1].  Additional information is given in Refs. [2-7].
+The variational 2-RDM method computes the ground-state energy as a functional of the 2-RDM constrained by N-representability conditions.  This implementation, written mainly by A. W. Schlimgen, is based on code by D. A. Mazziotti.  Optimization is performed by the boundary-point algorithm for semidefinite programming, developed for 2-RDMs by D. A. Mazziotti in Ref. [1].  Additional information is given in Refs. [2-7].
 
 Selected References
 
