@@ -76,7 +76,7 @@ class boundaryPointSDP():
             sA = self.AAt
             sB = numpy.dot(A, (c-z)) + tau*mu*(b - numpy.dot(A,x))
 
-            cgRes = scipy.sparse.linalg.cg(sA, sB, maxiter=10000, M=self.precond, tol=1e-9)
+            cgRes = scipy.sparse.linalg.cg(sA, sB, maxiter=10000, M=self.precond, atol=1e-9)
 
             if cgRes[1] == 0:
                 return cgRes[0]
@@ -223,61 +223,112 @@ class boundaryPointSDP():
                 self.mu *= ePrimal/eDual
 
             iterations += 1
-            print('\n Iteration ', iterations)
-            print('Primal Energy = ', round(self.primalEnergy(), 9))
-            print('Dual Energy = ', round(self.dualEnergy(), 9))
-            print('Duality Gap = ', round(self.dualityGap(), 9))
-            print('Primal Error = ', round(self.primalError(), 9))
-            print('Dual Error = ', round(self.dualError(), 9), '\n')
+            # print('\n Iteration ', iterations)
+            # print('Primal Energy = ', round(self.primalEnergy(), 9))
+            # print('Dual Energy = ', round(self.dualEnergy(), 9))
+            # print('Duality Gap = ', round(self.dualityGap(), 9))
+            # print('Primal Error = ', round(self.primalError(), 9))
+            # print('Dual Error = ', round(self.dualError(), 9), '\n')
             self.conv = checkConv(self, iterations)
             self.tTot = time.time()-t0
 
-        print('Timing')
-        print('Ave. CG time=', self.tCG/iterations)
-        print('Ave. UpdateM=', self.tUM/iterations)
-        print('Ave. BP =', self.tTot/iterations)
-        print('CG time =', self.tCG)
-        print('Update M =', self.tUM)
-        print('T tot =', self.tTot)
+        # print('Timing')
+        # print('Ave. CG time=', self.tCG/iterations)
+        # print('Ave. UpdateM=', self.tUM/iterations)
+        # print('Ave. BP =', self.tTot/iterations)
+        # print('CG time =', self.tCG)
+        # print('Update M =', self.tUM)
+        # print('T tot =', self.tTot)
         return
 
 
-if __name__ == '__main__':
+def run_sdp(molecule_geometry, bas):
+    import sdpTools
+    t0 = time.time()
 
+    testBP = boundaryPointSDP()
+    print('Time to initialize BPSDP ', round(time.time() - t0, 5), ' seconds')
+
+    testBP.A, testBP.b, testBP.c, testBP.blocks, mats, nuclear_rep, k2 = sdpTools.twoElectronAB(molecule_geometry, bas)
+
+    testBP.maxIter = 100000
+    testBP.solveSDP()
+
+    cnt = 0
+    solution = {}
+    for i, block in enumerate(testBP.blocks):
+        solution[mats[i]] = numpy.asarray(testBP.x[cnt:cnt + block ** 2]).reshape(block, -1)
+        cnt += block ** 2
+
+    d2ab = solution['D2ab']
+    tF = time.time()
+
+    print('Time for BPSDP test is ', str(round(tF - t0, 3)), ' seconds')
+
+    print('####################')
+    print('K2:')
+    print(k2)
+    print('####################')
+    print('D2ab:')
+    print(d2ab)
+    print('####################')
+    print('NuclearRepulsion:')
+    print(nuclear_rep)
+    print('####################')
+    print('PrimalEnergy:')
+    print(testBP.primalEnergy())
+    print('####################')
+    print('DONE')
+
+
+def run_example():
     import sdpTools
 
-    bases = ['STO-6G']#, '6-31G']#, 'cc-pvdz']#, 'cc-pvtz']
+    bases = ['STO-3G']  # , '6-31G']#, 'cc-pvdz']#, 'cc-pvtz']
 
     for bas in bases:
         t0 = time.time()
 
         testBP = boundaryPointSDP()
-        print('Time to initialize BPSDP ', round(time.time()-t0, 5), ' seconds')
-        testBP.A, testBP.b, testBP.c, testBP.blocks, mats = sdpTools.testSuite.twoElectronAB(bas, 'sdp')
+        print('Time to initialize BPSDP ', round(time.time() - t0, 5), ' seconds')
+
+        geometry = [['H', (0.,0.,0.)], ['H', (0.,0.,0.7414)]]
+        testBP.A, testBP.b, testBP.c, testBP.blocks, mats, nuclear_rep, k2 = sdpTools.twoElectronAB(geometry, bas)
+
         testBP.maxIter = 100000
         testBP.solveSDP()
-        
+
         cnt = 0
         blocks = []
         solution = {}
         for i, block in enumerate(testBP.blocks):
-                solution[mats[i]] = numpy.asarray(testBP.x[cnt:cnt+block**2]).reshape(block, -1)        
-                cnt += block**2 
-        
-        r = solution['D1a'].shape[0]
-        
+            solution[mats[i]] = numpy.asarray(testBP.x[cnt:cnt + block ** 2]).reshape(block, -1)
+            cnt += block ** 2
 
-        print(testBP.blocks)
-        d1 = solution['D1a']
-        eigs, vecs = numpy.linalg.eigh(d1.reshape(r,-1))
-       
-        print()
-        print(d1)
-        print()
-        print(eigs)
-        print()
-        print()
+        d2ab = solution['D2ab']
         tF = time.time()
 
-        print('Time for BPSDP test is ', str(round(tF-t0, 3)), ' seconds')
+        print('Time for BPSDP test is ', str(round(tF - t0, 3)), ' seconds')
 
+        print('####################')
+        print('K2:')
+        print(k2)
+        print('####################')
+        print('D2ab:')
+        print(d2ab)
+        print('####################')
+        print('NuclearRepulsion:')
+        print(nuclear_rep)
+        print('####################')
+        print('PrimalEnergy:')
+        print(testBP.primalEnergy())
+        print('####################')
+        print('DONE')
+
+
+if __name__ == '__main__':
+    # run_example()
+
+    basis = 'STO-3G'
+    geometry = [['H', (0., 0., 0.)], ['H', (0., 0., 0.7414)]]
+    run_sdp(geometry, basis)
