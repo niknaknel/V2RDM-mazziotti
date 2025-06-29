@@ -326,9 +326,45 @@ def run_example():
         print('DONE')
 
 
+OPTIONS = {
+    'HYDROGEN': {
+        'geometry': lambda x: [('H', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, x))],
+        'multiplicity': 1,
+        'charge': 0,
+        'description': lambda x: f"Hydrogen_molecule_H2_{x}"
+    },
+    'HYDROGEN_CHAIN': {
+        'geometry': lambda x: [
+                ('H', (0.0, 0.0, 0.0)),
+                ('H', (0.0, 0.0, x)),
+                ('H', (0.0, 0.0, 2*x)),
+                ('H', (0.0, 0.0, 3*x))
+            ],
+        'multiplicity': 1,
+        'charge': 0,
+        'description': lambda x: f"Hydrogen_chain_H4_{x}"
+    }
+}
+
+
 if __name__ == '__main__':
     # run_example()
 
+    import numpy as np
+
+    step_size = 0.1
+    steps = 25
+    start = 0.25
+    stop = start + step_size*steps
+    xs = np.linspace(start, stop, steps)
+
     basis = 'STO-3G'
-    geometry = [['H', (0., 0., 0.)], ['H', (0., 0., 0.7414)]]
-    run_sdp(geometry, basis)
+
+    for x in xs:
+        mol = OPTIONS['HYDROGEN_CHAIN']
+        geometry = mol['geometry'](x)
+        description = mol['description'](x)
+        print("=== START TEST: %s ===" % description)
+        run_sdp(geometry, basis)
+        print("=== END TEST ===")
+
