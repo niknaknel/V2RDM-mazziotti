@@ -353,8 +353,8 @@ if __name__ == '__main__':
     import numpy as np
 
     step_size = 0.1
-    steps = 25
-    start = 0.25
+    steps = 10
+    start = 0.5
     stop = start + step_size*steps
     xs = np.linspace(start, stop, steps)
 
