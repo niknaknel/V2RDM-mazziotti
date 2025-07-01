@@ -1,8 +1,13 @@
+import sys
 import scipy, numpy, time, rdm_tools
 from scipy import sparse
 from scipy.sparse import linalg
 from functools import reduce
+import numpy as np
 numpy.set_printoptions(linewidth=10000, threshold=100000, precision=3)
+
+import sdpTools
+from molecules import OPTIONS
 
 class boundaryPointSDP():
     def __init__(self):
@@ -242,8 +247,54 @@ class boundaryPointSDP():
         return
 
 
+def run_example():
+    print("=== START TEST: H2 Example 0.7414 ===")
+    bases = ['STO-3G']  # , '6-31G']#, 'cc-pvdz']#, 'cc-pvtz']
+
+    for bas in bases:
+        t0 = time.time()
+
+        testBP = boundaryPointSDP()
+        print('Time to initialize BPSDP ', round(time.time() - t0, 5), ' seconds')
+
+        geometry = [['H', (0.,0.,0.)], ['H', (0.,0.,0.7414)]]
+        testBP.A, testBP.b, testBP.c, testBP.blocks, mats, nuclear_rep, k2 = sdpTools.twoElectronAB(geometry, bas)
+
+        testBP.maxIter = 100000
+        testBP.solveSDP()
+
+        cnt = 0
+        solution = {}
+        for i, block in enumerate(testBP.blocks):
+            solution[mats[i]] = numpy.asarray(testBP.x[cnt:cnt + block ** 2]).reshape(block, -1)
+            cnt += block ** 2
+
+        d2ab = solution['D2ab']
+        tF = time.time()
+
+        print('Time for BPSDP test is ', str(round(tF - t0, 3)), ' seconds')
+
+        print('####################')
+        print('K2:')
+        print(k2)
+        print('####################')
+        print('D2ab:')
+        print(d2ab)
+        print('####################')
+        print('NuclearRepulsion:')
+        print(nuclear_rep)
+        print('####################')
+        print('PrimalEnergy:')
+        print(testBP.primalEnergy())
+        print('####################')
+        print('DualEnergy:')
+        print(testBP.dualEnergy())
+        print('####################')
+        print('DONE')
+        print("=== END TEST ===")
+
+
 def run_sdp(molecule_geometry, bas):
-    import sdpTools
     t0 = time.time()
 
     testBP = boundaryPointSDP()
@@ -278,93 +329,48 @@ def run_sdp(molecule_geometry, bas):
     print('PrimalEnergy:')
     print(testBP.primalEnergy())
     print('####################')
+    print('DualEnergy:')
+    print(testBP.dualEnergy())
+    print('####################')
     print('DONE')
 
 
-def run_example():
-    import sdpTools
-
-    bases = ['STO-3G']  # , '6-31G']#, 'cc-pvdz']#, 'cc-pvtz']
-
-    for bas in bases:
-        t0 = time.time()
-
-        testBP = boundaryPointSDP()
-        print('Time to initialize BPSDP ', round(time.time() - t0, 5), ' seconds')
-
-        geometry = [['H', (0.,0.,0.)], ['H', (0.,0.,0.7414)]]
-        testBP.A, testBP.b, testBP.c, testBP.blocks, mats, nuclear_rep, k2 = sdpTools.twoElectronAB(geometry, bas)
-
-        testBP.maxIter = 100000
-        testBP.solveSDP()
-
-        cnt = 0
-        blocks = []
-        solution = {}
-        for i, block in enumerate(testBP.blocks):
-            solution[mats[i]] = numpy.asarray(testBP.x[cnt:cnt + block ** 2]).reshape(block, -1)
-            cnt += block ** 2
-
-        d2ab = solution['D2ab']
-        tF = time.time()
-
-        print('Time for BPSDP test is ', str(round(tF - t0, 3)), ' seconds')
-
-        print('####################')
-        print('K2:')
-        print(k2)
-        print('####################')
-        print('D2ab:')
-        print(d2ab)
-        print('####################')
-        print('NuclearRepulsion:')
-        print(nuclear_rep)
-        print('####################')
-        print('PrimalEnergy:')
-        print(testBP.primalEnergy())
-        print('####################')
-        print('DONE')
-
-
-OPTIONS = {
-    'HYDROGEN': {
-        'geometry': lambda x: [('H', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, x))],
-        'multiplicity': 1,
-        'charge': 0,
-        'description': lambda x: f"Hydrogen_molecule_H2_{x}"
-    },
-    'HYDROGEN_CHAIN': {
-        'geometry': lambda x: [
-                ('H', (0.0, 0.0, 0.0)),
-                ('H', (0.0, 0.0, x)),
-                ('H', (0.0, 0.0, 2*x)),
-                ('H', (0.0, 0.0, 3*x))
-            ],
-        'multiplicity': 1,
-        'charge': 0,
-        'description': lambda x: f"Hydrogen_chain_H4_{x}"
-    }
-}
-
-
-if __name__ == '__main__':
-    # run_example()
-
-    import numpy as np
-
+def run_experiment(mol_name):
     step_size = 0.1
     steps = 10
     start = 0.5
-    stop = start + step_size*steps
+    stop = start + step_size * steps
     xs = np.linspace(start, stop, steps)
-
     basis = 'STO-3G'
 
     for x in xs:
-        mol = OPTIONS['HYDROGEN_CHAIN']
+        mol = OPTIONS[mol_name]
         geometry = mol['geometry'](x)
         description = mol['description'](x)
         print("=== START TEST: %s ===" % description)
         run_sdp(geometry, basis)
         print("=== END TEST ===")
 
+
+def main():
+    # Check if argument was provided
+    if len(sys.argv) < 2:
+        print("No argument provided. Running example case.\n")
+        run_example()
+
+    else:
+        # Get the argument (first argument after script name)
+        user_arg = sys.argv[1].upper()
+
+        # Validate the argument
+        if user_arg not in OPTIONS.keys():
+            print(f"Error: Invalid argument '{user_arg}'")
+            print(f"Accepted arguments: {', '.join(OPTIONS.keys())}")
+            sys.exit(1)
+
+        print(f"Success: Received valid argument '{user_arg}'\n")
+        run_experiment(user_arg)
+
+
+if __name__ == "__main__":
+    main()
