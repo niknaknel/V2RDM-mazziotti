@@ -247,6 +247,40 @@ class boundaryPointSDP():
         return
 
 
+def summarise_result(k2, d2ab, d2ab_fci, nuclear_rep, primal_energy, dual_energy, nround=None):
+    if not nround is None:
+        k2 = np.round(k2, nround)
+        d2ab = np.round(d2ab, nround)
+        d2ab_fci = np.round(d2ab_fci, nround)
+
+    print('########## RESULTS ##########')
+    print('K2:')
+    print(k2)
+    print('####################')
+    print('D2ab:')
+    print(d2ab)
+    print('####################')
+    print('TraceD:')
+    print(np.trace(d2ab))
+    print('####################')
+    print('D2ab_FCI:')
+    print(d2ab_fci)
+    print('####################')
+    print('norm(D2-D2FCI):')
+    print(np.linalg.norm(d2ab - d2ab_fci, 'fro'))
+    print('####################')
+    print('NuclearRepulsion:')
+    print(nuclear_rep)
+    print('####################')
+    print('PrimalEnergy:')
+    print(primal_energy)
+    print('####################')
+    print('DualEnergy:')
+    print(dual_energy)
+    print('####################')
+    print('DONE')
+
+
 def run_example():
     print("=== START TEST: H2 Example 0.7414 ===")
     bases = ['STO-3G']  # , '6-31G']#, 'cc-pvdz']#, 'cc-pvtz']
@@ -258,7 +292,7 @@ def run_example():
         print('Time to initialize BPSDP ', round(time.time() - t0, 5), ' seconds')
 
         geometry = [['H', (0.,0.,0.)], ['H', (0.,0.,0.7414)]]
-        testBP.A, testBP.b, testBP.c, testBP.blocks, mats, nuclear_rep, k2 = sdpTools.twoElectronAB(geometry, bas)
+        testBP.A, testBP.b, testBP.c, testBP.blocks, mats, nuclear_rep, k2, d2ab_fci = sdpTools.twoElectronAB(geometry, bas)
 
         testBP.maxIter = 100000
         testBP.solveSDP()
@@ -273,24 +307,7 @@ def run_example():
         tF = time.time()
 
         print('Time for BPSDP test is ', str(round(tF - t0, 3)), ' seconds')
-
-        print('####################')
-        print('K2:')
-        print(k2)
-        print('####################')
-        print('D2ab:')
-        print(d2ab)
-        print('####################')
-        print('NuclearRepulsion:')
-        print(nuclear_rep)
-        print('####################')
-        print('PrimalEnergy:')
-        print(testBP.primalEnergy())
-        print('####################')
-        print('DualEnergy:')
-        print(testBP.dualEnergy())
-        print('####################')
-        print('DONE')
+        summarise_result(k2, d2ab, d2ab_fci, nuclear_rep, testBP.primalEnergy(), testBP.dualEnergy(), nround=3)
         print("=== END TEST ===")
 
 
@@ -300,7 +317,7 @@ def run_sdp(molecule_geometry, bas):
     testBP = boundaryPointSDP()
     print('Time to initialize BPSDP ', round(time.time() - t0, 5), ' seconds')
 
-    testBP.A, testBP.b, testBP.c, testBP.blocks, mats, nuclear_rep, k2 = sdpTools.twoElectronAB(molecule_geometry, bas)
+    testBP.A, testBP.b, testBP.c, testBP.blocks, mats, nuclear_rep, k2, d2ab_fci = sdpTools.twoElectronAB(molecule_geometry, bas)
 
     testBP.maxIter = 100000
     testBP.solveSDP()
@@ -315,30 +332,13 @@ def run_sdp(molecule_geometry, bas):
     tF = time.time()
 
     print('Time for BPSDP test is ', str(round(tF - t0, 3)), ' seconds')
-
-    print('####################')
-    print('K2:')
-    print(k2)
-    print('####################')
-    print('D2ab:')
-    print(d2ab)
-    print('####################')
-    print('NuclearRepulsion:')
-    print(nuclear_rep)
-    print('####################')
-    print('PrimalEnergy:')
-    print(testBP.primalEnergy())
-    print('####################')
-    print('DualEnergy:')
-    print(testBP.dualEnergy())
-    print('####################')
-    print('DONE')
+    summarise_result(k2, d2ab, d2ab_fci, nuclear_rep, testBP.primalEnergy(), testBP.dualEnergy(), nround=3)
 
 
 def run_experiment(mol_name):
     step_size = 0.1
-    steps = 10
-    start = 0.5
+    steps = 2
+    start = 1.0
     stop = start + step_size * steps
     xs = np.linspace(start, stop, steps)
     basis = 'STO-3G'

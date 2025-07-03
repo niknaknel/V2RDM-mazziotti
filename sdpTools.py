@@ -37,10 +37,10 @@ def twoElectronAB(geometry, basis):
 
     # run casci
     mc = mcscf.CASCI(mf, mol.nao_nr(), (Na,Nb))
-    mc.verbose = 3
-    # mc.fcisolver = fci.solver(mol, singlet=True)
-    # (d1a, d1b), (d2aa, d2ab, d2bb) = mc.fcisolver.make_rdm12s(mc.ci, mc.ncas, (Na, Nb))
     mc.kernel()
+    mc.verbose = 3
+    mc.fcisolver = fci.solver(mol, singlet=True)
+    (d1a, d1b), (d2aa, d2ab_fci, d2bb) = mc.fcisolver.make_rdm12s(mc.ci, mc.ncas, (Na, Nb))
 
     # get nuclear repulsion
     nuclear_repulsion = mol.energy_nuc()
@@ -69,7 +69,10 @@ def twoElectronAB(geometry, basis):
     c = numpy.append(c, pad_c)
     A, b, blocks = sdp.A, sdp.b, sdp.blocks
 
-    return A, b, c, blocks, sdp.varlist, nuclear_repulsion, k2
+    # reshape exact D2
+    d2ab_fci = d2ab_fci.transpose(0, 2, 3, 1).reshape(r ** 2, r ** 2)
+
+    return A, b, c, blocks, sdp.varlist, nuclear_repulsion, k2, d2ab_fci
 
 
 def makeK2(v2, k1, r, N):
